@@ -83,11 +83,16 @@ class SimpleITKDataset(Dataset, Randomizable):
         self._seed = self.R.randint(MAX_SEED, dtype="uint32")
 
     def prepare_scan(self, path: str) -> "npt.NDArray[Any]":
+        img = sitk.ReadImage(path)
+        age = img.GetMetaData("0010|1010")
+        psad = img.GetMetaData("PSAD_REPORT")
+        psa = img.GetMetaData("PSA_REPORT")
+        prostate_volume = img.GetMetaData("PROSTATE_VOLUME_REPORT")
         return np.expand_dims(
             sitk.GetArrayFromImage(
-                sitk.ReadImage(path)
+                img
             ).astype(np.float32), axis=(0, 1)
-        )
+        ), (age, psad, psa, prostate_volume)
 
     def __getitem__(self, index: int):
         self.randomize()
