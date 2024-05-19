@@ -241,7 +241,23 @@ class UNet(nn.Module):
             in_channels: number of input channels.
             out_channels: number of output channels.
         """
-        return self._get_down_layer(in_channels, out_channels, 1, False)
+        mod = Convolution(
+            self.dimensions,
+            in_channels,
+            out_channels,
+            strides=1,
+            kernel_size=self.kernel_size,
+            act=self.act,
+            norm=self.norm,
+            dropout=self.dropout,
+            bias=self.bias,
+            adn_ordering=self.adn_ordering,
+        )
+
+        print("Bottom features")
+        print(mod)
+        return mod
+
 
     def _get_up_layer(self, in_channels: int, out_channels: int, strides: int, is_top: bool) -> nn.Module:
         """

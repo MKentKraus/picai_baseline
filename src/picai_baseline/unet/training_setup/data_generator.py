@@ -67,7 +67,8 @@ class DataLoaderFromDataset(DataLoader):
 
         # create dictionary per sample
         batch = [{'data': self._data[i][0].numpy(),
-                  'seg': self._data[i][1].numpy()} for i in indices]
+                  'seg': self._data[i][2].numpy(),
+                  "clinical" : self._data[i][1].numpy()} for i in indices] #needs to refer to data
 
         return self.collate_fn(batch)
 
@@ -104,6 +105,7 @@ def prepare_datagens(args, fold_id):
                                 seg_files=train_data[1][:args.batch_size*2],
                                 transform=Compose(pretx),
                                 seg_transform=Compose(pretx))
+    
     check_loader = DataLoaderFromDataset(check_ds, batch_size=args.batch_size, num_threads=args.num_threads)
     data_pair = monai.utils.misc.first(check_loader)
     print('DataLoader - Image Shape: ', data_pair['data'].shape)
