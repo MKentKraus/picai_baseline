@@ -84,22 +84,15 @@ class SimpleITKDataset(Dataset, Randomizable):
 
     def prepare_scan(self, path: str) -> "npt.NDArray[Any]":
         img = sitk.ReadImage(path)
+        age = img.GetMetaData("0010|1010")
+        psad = img.GetMetaData("PSAD_REPORT")
+        psa = img.GetMetaData("PSA_REPORT")
+        prostate_volume = img.GetMetaData("PROSTATE_VOLUME_REPORT")
         return np.expand_dims(
             sitk.GetArrayFromImage(
                 img
             ).astype(np.float32), axis=(0, 1)
-        )
-
-    def read_meta_data(self, path: str, metas: list[str]):
-        img = sitk.ReadImage(path)
-        meta_data = []
-        for meta in metas:
-            md = img.GetMetaData(meta)
-            if meta == "0010|1010":
-                meta_data.append(int(md[:3]))
-            else:
-                meta_data.append(float(md))
-        return meta_data
+        ), (age, psad, psa, prostate_volume)
 
     def __getitem__(self, index: int):
         self.randomize()
@@ -111,8 +104,6 @@ class SimpleITKDataset(Dataset, Randomizable):
         img_hbv = z_score_norm(self.prepare_scan(str(self.image_files[index][2])), 99.5)
 
         img = np.concatenate([img_t2w, img_adc, img_hbv], axis=1)
-
-        meta_data = self.read_meta_data(str(self.image_files[index][0]), ["0010|1010", "PSAD_REPORT", "PSA_REPORT", "PROSTATE_VOLUME_REPORT"])
 
         if self.seg_files is not None:
             seg = sitk.GetArrayFromImage(sitk.ReadImage(self.seg_files[index])).astype(np.int8)
@@ -129,7 +120,7 @@ class SimpleITKDataset(Dataset, Randomizable):
             label = self.labels[index]
 
         # construct outputs
-        data = [img, meta_data]
+        data = [img]
         if seg is not None:
             data.append(seg)
         if label is not None:
