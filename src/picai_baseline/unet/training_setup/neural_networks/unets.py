@@ -113,6 +113,7 @@ class UNet(nn.Module):
         bias: bool = True,
         adn_ordering: str = "NDA",
         dimensions: Optional[int] = None,
+        n_inputs: Optional[int] = 0
     ) -> None:
 
         super().__init__()
@@ -184,6 +185,8 @@ class UNet(nn.Module):
         self.layer_list = _create_block(in_channels, out_channels, self.channels, self.strides, True)
         
         self.model = nn.Sequential(*self.layer_list)
+
+        self.logistic_regression = nn.Sequential(nn.Linear(n_inputs, 2), nn.Sigmoid())
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
         """
@@ -311,7 +314,8 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
         x = self.model(x)
-        return x
+        global_confidence = self.logistic_regression(x, clinical)
+        return x, global_confidence
 
 
 Unet = UNet
