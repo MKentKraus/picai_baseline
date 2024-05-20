@@ -162,11 +162,13 @@ class UNet(nn.Module):
             """
 
             self.layer_list = []
+            print(len(channels))
+            print(len(strides))
             for i in range(len(channels)):
                 c = channels[i]
                 s = strides[i]   
                 upc = c * 2
-
+        
 
                 if(i == 0):
                     down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
@@ -182,6 +184,7 @@ class UNet(nn.Module):
                     self.layer_list.append(up)
 
                 else:
+                    print("h")
                     # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
                     self.bottom_layer = self._get_bottom_layer(c, channels[i])
                     upc = c + channels[i]
