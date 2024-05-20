@@ -178,7 +178,7 @@ class UNet(nn.Module):
 
                 self.down_b_bottleneck = self._get_down_layer(inc, c-1, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
                 self.up_b_bottleneck = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
-                return self._get_connection_block(down_b_bottleneck, subblock, up_b_bottleneck) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
+                return self._get_connection_block(self.down_b_bottleneck, subblock, self.up_b_bottleneck) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
 
 
 
