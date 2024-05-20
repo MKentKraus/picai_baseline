@@ -169,20 +169,20 @@ class UNet(nn.Module):
                 upc = c * 2
                 down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
                 up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
-                return [down, SkipConnection(nn.Sequential(*subblock)), up] #Returning it is a list to allow us to unravel the forward pass to modify the deep layer
+                return self._get_connection_block(down, subblock, up) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
 
             else:
                 # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
                 subblock = self._get_bottom_layer(c, channels[1])
                 upc = c + channels[1]
 
-                down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
-                up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
-                return [down, SkipConnection(subblock), up] #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
+                self.down_b_bottleneck = self._get_down_layer(inc, c-1, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
+                self.up_b_bottleneck = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
+                return self._get_connection_block(down_b_bottleneck, subblock, up_b_bottleneck) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
+
 
 
         self.layer_list = _create_block(in_channels, out_channels, self.channels, self.strides, True)
-        
         self.model = nn.Sequential(*self.layer_list)
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
@@ -246,7 +246,10 @@ class UNet(nn.Module):
             in_channels: number of input channels.
             out_channels: number of output channels.
         """
-        mod = Convolution(
+
+        self.metadata_lin = nn.Linear(5, 320)
+
+        self.bottleneck = Convolution(
             self.dimensions,
             in_channels,
             out_channels,
@@ -260,7 +263,8 @@ class UNet(nn.Module):
         )
 
 
-        return mod
+
+        return self.bottleneck
 
 
     def _get_up_layer(self, in_channels: int, out_channels: int, strides: int, is_top: bool) -> nn.Module:
