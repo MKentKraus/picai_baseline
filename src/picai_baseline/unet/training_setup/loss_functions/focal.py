@@ -28,6 +28,7 @@ class FocalLoss(nn.Module):
         self.reduction = reduction
 
     def forward(self, inputs, targets):
+        inputs, confidence = inputs
         inputs = torch.sigmoid(inputs)
         ce_loss = F.binary_cross_entropy(inputs, targets, reduction="none")
         p_t = (inputs * targets) + ((1 - inputs) * (1 - targets))
@@ -37,9 +38,12 @@ class FocalLoss(nn.Module):
             alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
             loss = alpha_t * loss
 
+        confidence_targets = torch.max(targets.view(targets.size()[:-2], -1), dim=-1)
+        ce_loss_confidence = F.binary_cross_entropy(confidence, confidence_targets, reduction="none")
+
         if self.reduction == "mean":
             loss = loss.mean()
         elif self.reduction == "sum":
             loss = loss.sum()
 
-        return loss
+        return loss + ce_loss_confidence
