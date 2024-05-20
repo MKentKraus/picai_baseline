@@ -176,7 +176,7 @@ class UNet(nn.Module):
             down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
             up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
 
-            return [down, SkipConnection(*subblock), up] #Returning it is a list to allow us to unravel the forward pass to modify the deep layer
+            return [down, SkipConnection(nn.Sequential(*subblock)), up] #Returning it is a list to allow us to unravel the forward pass to modify the deep layer
 
         self.model = _create_block(in_channels, out_channels, self.channels, self.strides, True)
         
