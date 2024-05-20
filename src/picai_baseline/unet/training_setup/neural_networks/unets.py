@@ -309,7 +309,7 @@ class UNet(nn.Module):
 
         return conv
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
         x = self.model(x)
         return x
 

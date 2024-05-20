@@ -112,9 +112,11 @@ def optimize_model(model, optimizer, loss_func, train_gen, args, tracking_metric
         step += 1
         try:
             inputs = batch_data['data'].to(device)
+            clinical = batch_data['clinical'].to(device)
             labels = batch_data['seg'].to(device)
         except Exception:
             inputs = torch.from_numpy(batch_data['data']).to(device)
+            clinical = torch.from_numpy(batch_data['clinical']).to(device)
             labels = torch.from_numpy(batch_data['seg']).to(device)
 
         # bugfix for shape of targets
@@ -125,7 +127,7 @@ def optimize_model(model, optimizer, loss_func, train_gen, args, tracking_metric
             # reshape to (B, C, D, H, W)
             labels = labels.permute(0, 4, 1, 2, 3).contiguous()
 
-        outputs = model(inputs)
+        outputs = model(inputs, clinical)
         loss = loss_func(outputs, labels)
         train_loss += loss.item()
 
