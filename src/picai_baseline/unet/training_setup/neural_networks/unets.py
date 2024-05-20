@@ -171,27 +171,29 @@ class UNet(nn.Module):
                 if(i == 0):
                     down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
                     up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
-                    return self._get_connection_block(down, subblock, up) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
+                    self.layer_list.append(down)
+                    self.layer_list.append(up)
 
                 elif len(channels)-i > 2:
-                    subblock = _create_block(c, c, channels[1:], strides[1:], False)  # continue recursion down
 
                     down = self._get_down_layer(channels[i-1], c, s, is_top)  # create layer in downsampling path
-                    up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
-                    return self._get_connection_block(down, subblock, up) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
+                    up = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
+                    self.layer_list.append(down)
+                    self.layer_list.append(up)
 
                 else:
                     # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
-                    subblock = self._get_bottom_layer(c, channels[1])
+                    self.bottom_layer = self._get_bottom_layer(c, channels[1])
                     upc = c + channels[1]
 
                     self.down_b_bottleneck = self._get_down_layer(inc, c-1, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
                     self.up_b_bottleneck = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
-                    return self._get_connection_block(self.down_b_bottleneck, subblock, self.up_b_bottleneck) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
+                    self.layer_list.append(self.down_b_bottleneck)
+                    self.layer_list.append(self.up_b_bottleneck)
 
+            return self.layer_list
 
-
-        _create_block(in_channels, out_channels, self.channels, self.strides, True)
+        self.layer_list = _create_block(in_channels, out_channels, self.channels, self.strides, True)
         self.model = nn.Sequential(*self.layer_list)
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
@@ -319,6 +321,8 @@ class UNet(nn.Module):
         return conv
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+            
         x = self.model(x)
         return x
 
