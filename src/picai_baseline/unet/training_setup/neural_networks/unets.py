@@ -186,7 +186,7 @@ class UNet(nn.Module):
         
         self.model = nn.Sequential(*self.layer_list)
 
-        self.logistic_regression = nn.Sequential(nn.Linear(n_inputs, 2), nn.Sigmoid())
+        self.logistic_regression = nn.Sequential(nn.Linear(n_inputs, 1), nn.Sigmoid())
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
         """
