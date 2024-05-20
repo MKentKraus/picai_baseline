@@ -161,7 +161,8 @@ class UNet(nn.Module):
                 is_top: True if this is the top block.
             """
 
-            self.layer_list = []
+            self.layer_list_down = []
+            self.layer_list_up = []
 
             for i in range(len(channels)-1):
                 c = channels[i]
@@ -172,8 +173,8 @@ class UNet(nn.Module):
                 if(i == 0): #first layer
                     down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
                     up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
-                    self.layer_list.append(down)
-                    self.layer_list.append(up)
+                    self.layer_list_down.append(down)
+                    self.layer_list_up.insert(0, up)
 
                 elif(i==len(channels)-2): #bottom layer
                     print("h")
@@ -182,21 +183,15 @@ class UNet(nn.Module):
 
                     self.down_b_bottleneck = self._get_down_layer(channels[i-1], c-1, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
                     self.up_b_bottleneck = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
-                    self.layer_list.append(self.down_b_bottleneck)
-                    self.layer_list.append(self.up_b_bottleneck)
 
 
                 else:
                     down = self._get_down_layer(channels[i-1], c, s, is_top)  # create layer in downsampling path
                     up = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
-                    self.layer_list.append(down)
-                    self.layer_list.append(up)
-                
+                    self.layer_list_down.append(down)
+                    self.layer_list_up.insert(0, up)
 
-            return self.layer_list
-
-        self.layer_list = _create_block(in_channels, out_channels, self.channels, self.strides, True)
-        self.model = nn.Sequential(*self.layer_list)
+        _create_block(in_channels, out_channels, self.channels, self.strides, True)
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
         """
@@ -323,9 +318,13 @@ class UNet(nn.Module):
         return conv
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-
-            
-        x = self.model(x)
+        for layer in self.layer_list_down:
+            x = layer(x)
+        x = self.down_b_bottleneck(x)
+        x = self.bottom_layer(x)
+        x = self.up_b_bottleneck(x)
+        for layer in self.layer_list_up:
+            x = layer(x)
         return x
 
 
