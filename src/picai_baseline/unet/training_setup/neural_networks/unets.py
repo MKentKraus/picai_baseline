@@ -160,22 +160,21 @@ class UNet(nn.Module):
                 strides: convolution stride.
                 is_top: True if this is the top block.
             """
-            c = channels[0]
-            s = strides[0]
 
-
-            if len(channels) > 2:
-                subblock = _create_block(c, c, channels[1:], strides[1:], False)  # continue recursion down
+            self.layer_list = []
+            for i in range(len(channels)):
+                c = channels[i]
+                s = strides[i]   
                 upc = c * 2
+<<<<<<< Updated upstream
                 down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
                 up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
                 return [down, SkipConnection(nn.Sequential(*subblock)), up] #Returning it is a list to allow us to unravel the forward pass to modify the deep layer
+=======
+>>>>>>> Stashed changes
 
-            else:
-                # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
-                subblock = self._get_bottom_layer(c, channels[1])
-                upc = c + channels[1]
 
+<<<<<<< Updated upstream
                 down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
                 up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
                 return [down, SkipConnection(subblock), up] #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
@@ -183,6 +182,32 @@ class UNet(nn.Module):
 
         self.layer_list = _create_block(in_channels, out_channels, self.channels, self.strides, True)
         
+=======
+                if(i == 0):
+                    down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
+                    up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
+                    return self._get_connection_block(down, subblock, up) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
+
+                elif len(channels)-i > 2:
+                    subblock = _create_block(c, c, channels[1:], strides[1:], False)  # continue recursion down
+
+                    down = self._get_down_layer(channels[i-1], c, s, is_top)  # create layer in downsampling path
+                    up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
+                    return self._get_connection_block(down, subblock, up) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
+
+                else:
+                    # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
+                    subblock = self._get_bottom_layer(c, channels[1])
+                    upc = c + channels[1]
+
+                    self.down_b_bottleneck = self._get_down_layer(inc, c-1, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
+                    self.up_b_bottleneck = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
+                    return self._get_connection_block(self.down_b_bottleneck, subblock, self.up_b_bottleneck) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
+
+
+
+        _create_block(in_channels, out_channels, self.channels, self.strides, True)
+>>>>>>> Stashed changes
         self.model = nn.Sequential(*self.layer_list)
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
