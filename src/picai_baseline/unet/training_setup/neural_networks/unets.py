@@ -163,10 +163,10 @@ class UNet(nn.Module):
             c = channels[0]
             s = strides[0]
 
-            subblock: nn.Module
 
             if len(channels) > 2:
                 subblock = _create_block(c, c, channels[1:], strides[1:], False)  # continue recursion down
+
                 upc = c * 2
             else:
                 # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
@@ -176,9 +176,16 @@ class UNet(nn.Module):
             down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
             up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
 
-            return self._get_connection_block(down, up, subblock)
+            return [down, SkipConnection(*subblock), up] #Returning it is a list to allow us to unravel the forward pass to modify the deep layer
 
         self.model = _create_block(in_channels, out_channels, self.channels, self.strides, True)
+        
+        print(self.model)
+        print(self.model[0])
+        print(self.model[1])
+        
+        print("Look here")
+        self.model = nn.Sequential(*self.model)
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
         """
@@ -254,8 +261,7 @@ class UNet(nn.Module):
             adn_ordering=self.adn_ordering,
         )
 
-        print("Bottom features")
-        print(mod)
+
         return mod
 
 
