@@ -162,37 +162,36 @@ class UNet(nn.Module):
             """
 
             self.layer_list = []
-            print(len(channels))
-            print(len(strides))
-            for i in range(len(channels)):
+
+            for i in range(len(channels)-1):
                 c = channels[i]
                 s = strides[i]   
                 upc = c * 2
-        
 
-                if(i == 0):
+
+                if(i == 0): #first layer
                     down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
                     up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
                     self.layer_list.append(down)
                     self.layer_list.append(up)
 
-                elif len(channels)-i > 1:
-                    print(i)
-                    down = self._get_down_layer(channels[i-1], c, s, is_top)  # create layer in downsampling path
-                    up = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
-                    self.layer_list.append(down)
-                    self.layer_list.append(up)
-
-                else:
+                elif(i==len(channels)-2): #bottom layer
                     print("h")
-                    # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
-                    self.bottom_layer = self._get_bottom_layer(c, channels[i])
+                    self.bottom_layer = self._get_bottom_layer(c, channels[i+1], s)
                     upc = c + channels[i]
 
                     self.down_b_bottleneck = self._get_down_layer(channels[i-1], c-1, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
                     self.up_b_bottleneck = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
                     self.layer_list.append(self.down_b_bottleneck)
                     self.layer_list.append(self.up_b_bottleneck)
+
+
+                else:
+                    down = self._get_down_layer(channels[i-1], c, s, is_top)  # create layer in downsampling path
+                    up = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
+                    self.layer_list.append(down)
+                    self.layer_list.append(up)
+                
 
             return self.layer_list
 
@@ -253,7 +252,7 @@ class UNet(nn.Module):
         )
         return mod
 
-    def _get_bottom_layer(self, in_channels: int, out_channels: int) -> nn.Module:
+    def _get_bottom_layer(self, in_channels: int, out_channels: int, strides: int) -> nn.Module:
         """
         Returns the bottom or bottleneck layer at the bottom of the network linking encode to decode halves.
         Args:
@@ -264,7 +263,7 @@ class UNet(nn.Module):
             self.dimensions,
             in_channels,
             out_channels,
-            strides=1,
+            strides=strides,
             kernel_size=self.kernel_size,
             act=self.act,
             norm=self.norm,
