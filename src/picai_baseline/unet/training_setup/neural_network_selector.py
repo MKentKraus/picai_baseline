@@ -24,7 +24,8 @@ def neural_network_for_run(args, device):
             in_channels=args.num_channels,
             out_channels=args.num_classes,
             strides=args.model_strides,
-            channels=args.model_features
+            channels=args.model_features,
+            n_inputs=5
         )
     else:
         raise ValueError(f"Unknown model type: {args.model_type}")
