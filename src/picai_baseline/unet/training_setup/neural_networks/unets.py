@@ -149,7 +149,7 @@ class UNet(nn.Module):
 
         def _create_block(
             inc: int, outc: int, channels: Sequence[int], strides: Sequence[int], is_top: bool
-        ) -> nn.Module:
+        ):
             """
             Builds the UNet structure from the bottom up by recursing down to the bottom block, then creating sequential
             blocks containing the downsample path, a skip connection around the previous block, and the upsample path.
@@ -174,8 +174,8 @@ class UNet(nn.Module):
                     self.layer_list.append(down)
                     self.layer_list.append(up)
 
-                elif len(channels)-i > 2:
-
+                elif len(channels)-i > 1:
+                    print(i)
                     down = self._get_down_layer(channels[i-1], c, s, is_top)  # create layer in downsampling path
                     up = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
                     self.layer_list.append(down)
@@ -183,11 +183,11 @@ class UNet(nn.Module):
 
                 else:
                     # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
-                    self.bottom_layer = self._get_bottom_layer(c, channels[1])
-                    upc = c + channels[1]
+                    self.bottom_layer = self._get_bottom_layer(c, channels[i])
+                    upc = c + channels[i]
 
-                    self.down_b_bottleneck = self._get_down_layer(inc, c-1, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
-                    self.up_b_bottleneck = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
+                    self.down_b_bottleneck = self._get_down_layer(channels[i-1], c-1, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
+                    self.up_b_bottleneck = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
                     self.layer_list.append(self.down_b_bottleneck)
                     self.layer_list.append(self.up_b_bottleneck)
 
