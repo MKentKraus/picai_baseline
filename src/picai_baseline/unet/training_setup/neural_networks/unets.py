@@ -314,7 +314,7 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
         x = self.model(x)
-        global_confidence = self.logistic_regression(torch.append(torch.max(x), clinical))
+        global_confidence = self.logistic_regression(torch.cat(torch.max(x), clinical))
         return x, global_confidence
 
 
