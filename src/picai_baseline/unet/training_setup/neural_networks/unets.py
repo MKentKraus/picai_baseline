@@ -183,9 +183,6 @@ class UNet(nn.Module):
 
         self.layer_list = _create_block(in_channels, out_channels, self.channels, self.strides, True)
         
-        print(self.model)
-        
-        print("Look here")
         self.model = nn.Sequential(*self.layer_list)
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
