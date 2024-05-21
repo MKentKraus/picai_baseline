@@ -257,7 +257,7 @@ class UNet(nn.Module):
         self.lin = nn.Linear(4,5*8*8)
 
 
-        return self.bottleneck
+        return mod
 
 
     def _get_up_layer(self, in_channels: int, out_channels: int, strides: int, is_top: bool) -> nn.Module:
