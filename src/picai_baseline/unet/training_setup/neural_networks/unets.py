@@ -179,7 +179,7 @@ class UNet(nn.Module):
                 elif(i==len(channels)-2): #bottom layer
                     print("h")
                     self.bottom_layer = self._get_bottom_layer(c, channels[i+1], s)
-                    upc = c + channels[i]
+                    upc = c + channels[i+1]
 
                     self.down_b_bottleneck = self._get_down_layer(channels[i-1], c, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
                     self.up_b_bottleneck = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
@@ -308,6 +308,9 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         output_list = [] # store for skip connections
+
+        for layer in self.layer_list_up:
+            print(layer.shape)
         for layer in self.layer_list_down:
             x = layer(x)
             output_list.append(x)
