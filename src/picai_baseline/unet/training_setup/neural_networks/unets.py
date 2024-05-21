@@ -306,7 +306,7 @@ class UNet(nn.Module):
 
         return conv
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
         output_list = [] # store for skip connections
 
 
@@ -318,7 +318,7 @@ class UNet(nn.Module):
 
         x = self.bottom_layer(x)
 
-        med = self.lin(torch.Tensor([0,0,0,0])) #replace with medical data. Linear layer to add 
+        med = self.lin(clinical) #replace with medical data. Linear layer to add 
         med = torch.reshape(med, (5,8,8)).unsqueeze(0).unsqueeze(0) 
         x = torch.cat( [x, med], dim = 1)
         x = self.up_b_bottleneck(torch.cat([output_list.pop(), x], dim=1))
