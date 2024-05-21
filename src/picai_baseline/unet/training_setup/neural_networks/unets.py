@@ -254,19 +254,8 @@ class UNet(nn.Module):
             in_channels: number of input channels.
             out_channels: number of output channels.
         """
-        mod = Convolution(
-            self.dimensions,
-            in_channels,
-            out_channels,
-            strides=strides,
-            kernel_size=self.kernel_size,
-            act=self.act,
-            norm=self.norm,
-            dropout=self.dropout,
-            bias=self.bias,
-            adn_ordering=self.adn_ordering,
-        )
-
+        mod = self._get_down_layer(in_channels, out_channels, strides, False)
+        self.lin = nn.Linear(4,48)
 
         return mod
 
