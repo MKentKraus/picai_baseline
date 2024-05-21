@@ -177,7 +177,6 @@ class UNet(nn.Module):
                     self.layer_list_up.insert(0, up)
 
                 elif(i==len(channels)-2): #bottom layer
-                    print("h")
                     self.bottom_layer = self._get_bottom_layer(c, channels[i+1], s)
                     upc = c + channels[i+1]
 
@@ -317,8 +316,6 @@ class UNet(nn.Module):
         output_list.append(x)
         x = self.bottom_layer(x)
 
-        print(x.shape)
-        print(output_list[-1].shape)
         x = self.up_b_bottleneck(torch.cat([output_list.pop(), x], dim=1))
         for layer in self.layer_list_up:
             x = layer(torch.cat([x, output_list.pop()], dim=1))
