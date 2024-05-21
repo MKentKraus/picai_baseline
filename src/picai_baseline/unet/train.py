@@ -123,7 +123,10 @@ def main():
             model=model, optimizer=optimizer,
             device=device, args=args, fold_id=f
         )
-
+        
+        args.validate_n_epochs = 5 
+        args.validate_min_epoch = 0
+        
         # for each epoch
         for epoch in range(tracking_metrics['start_epoch'], args.num_epochs):
 

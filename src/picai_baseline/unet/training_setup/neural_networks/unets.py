@@ -324,6 +324,8 @@ class UNet(nn.Module):
         x = self.up_b_bottleneck(torch.cat([output_list.pop(), x], dim=1))
         for layer in self.layer_list_up:
             x = layer(torch.cat([x, output_list.pop()], dim=1))
+        
+        
         return x
 
 
