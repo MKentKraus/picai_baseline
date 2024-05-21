@@ -151,9 +151,10 @@ class UNet(nn.Module):
             inc: int, outc: int, channels: Sequence[int], strides: Sequence[int], is_top: bool
         ):
             """
-            Builds the UNet structure from the bottom up by recursing down to the bottom block, then creating sequential
-            blocks containing the downsample path, a skip connection around the previous block, and the upsample path.
-            Args:
+            Builds the blocks on the left/down part of the UNet and on the right/up part. The self.layer_list_down (self.layer_list_up) is a
+            list containing the layers in the downsampling (upsampling) path. The bottom layer has one output channel less, to make space for the
+            addition of an additional linear layer which inserts the clinical data to the UNet.
+                Args:
                 inc: number of input channels.
                 outc: number of output channels.
                 channels: sequence of channels. Top block first.
@@ -161,48 +162,35 @@ class UNet(nn.Module):
                 is_top: True if this is the top block.
             """
 
-            self.layer_list_down = []
-            self.layer_list_up = []
+            self.layer_list_down = [] # contains the layers in descending order in the downsampling path
+            self.layer_list_up = [] # contains the layers in ascending order in the upsampling path
 
             for i in range(len(channels)-1):
                 c = channels[i]
                 s = strides[i]   
                 upc = c * 2
 
-
-                if(i == 0): #first layer
+                if(i == 0): # first layer
                     down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
                     up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
                     self.layer_list_down.append(down)
                     self.layer_list_up.insert(0, up)
 
-                elif(i==len(channels)-2): #bottom layer
-                    self.bottom_layer = self._get_bottom_layer(c, channels[i+1]-1, s) #The -1 here  is to make space for the addition of a linear layer. 
+                elif(i==len(channels)-2): # bottom layer
+                    self.bottom_layer = self._get_bottom_layer(c, channels[i+1]-1, s) # The -1 here  is to make space for the addition of a linear layer. 
+                    self.clinical_data_feed_in = nn.Linear(4,5*8*8) # linear layer to feed in clinical data at the bottom layer of the UNet
                     upc = c + channels[i+1]
 
-                    self.down_b_bottleneck = self._get_down_layer(channels[i-1], c, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
-                    self.up_b_bottleneck = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
+                    self.down_b_bottleneck = self._get_down_layer(channels[i-1], c, s, is_top)
+                    self.up_b_bottleneck = self._get_up_layer(upc, channels[i-1], s, is_top)
 
-
-                else:
+                else: # middle layers
                     down = self._get_down_layer(channels[i-1], c, s, is_top)  # create layer in downsampling path
                     up = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
                     self.layer_list_down.append(down)
                     self.layer_list_up.insert(0, up)
 
         _create_block(in_channels, out_channels, self.channels, self.strides, True)
-
-    def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
-        """
-        Returns the block object defining a layer of the UNet structure including the implementation of the skip
-        between encoding (down) and and decoding (up) sides of the network.
-        Args:
-            down_path: encoding half of the layer
-            up_path: decoding half of the layer
-            subblock: block defining the next layer in the network.
-        Returns: block for this layer: `nn.Sequential(down_path, SkipConnection(subblock), up_path)`
-        """
-        return nn.Sequential(down_path, SkipConnection(subblock), up_path)
 
     def _get_down_layer(self, in_channels: int, out_channels: int, strides: int, is_top: bool) -> nn.Module:
         """
@@ -254,8 +242,6 @@ class UNet(nn.Module):
             out_channels: number of output channels.
         """
         mod = self._get_down_layer(in_channels, out_channels, 1, False)
-        self.lin = nn.Linear(4,5*8*8)
-
 
         return mod
 
@@ -309,21 +295,25 @@ class UNet(nn.Module):
     def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
         output_list = [] # store for skip connections
 
-
+        # down sampling path
         for layer in self.layer_list_down:
             x = layer(x)
-            output_list.append(x)
+            output_list.append(x) # store results for skip connections
+
         x = self.down_b_bottleneck(x)
         output_list.append(x)
 
         x = self.bottom_layer(x)
 
-        med = self.lin(clinical) #replace with medical data. Linear layer to add 
-        med = torch.reshape(med, (5,8,8)).unsqueeze(0).unsqueeze(0) 
-        x = torch.cat( [x, med], dim = 1)
+        med = self.clinical_data_feed_in(clinical) # Feed in the clinical data to the UNet
+        med = torch.reshape(med, (5,8,8)).unsqueeze(0).unsqueeze(0)  # Reshape the clinical data to match the shape of the latent space
+        x = torch.cat([x, med], dim = 1)
+
         x = self.up_b_bottleneck(torch.cat([output_list.pop(), x], dim=1))
+
+        # up sampling path
         for layer in self.layer_list_up:
-            x = layer(torch.cat([x, output_list.pop()], dim=1))
+            x = layer(torch.cat([x, output_list.pop()], dim=1)) # concatenate input with skip connection
         return x
 
 
