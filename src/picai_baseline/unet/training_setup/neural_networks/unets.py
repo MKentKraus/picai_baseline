@@ -254,7 +254,7 @@ class UNet(nn.Module):
             in_channels: number of input channels.
             out_channels: number of output channels.
         """
-        mod = self._get_down_layer(in_channels, out_channels, strides, False)
+        mod = self._get_down_layer(in_channels, out_channels, 1, False)
         self.lin = nn.Linear(4,48)
 
         return mod
