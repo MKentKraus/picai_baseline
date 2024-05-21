@@ -317,8 +317,8 @@ class UNet(nn.Module):
 
         x = self.bottom_layer(x)
 
-        med = self.lin([0,0,0,0]) #replace with medical data
-        med = torch.reshape(med, (5,8,8)).unsqueeze(0)
+        med = self.lin(torch.Tensor([0,0,0,0])) #replace with medical data
+        med = torch.reshape(med, (5,8,8)).unsqueeze(0).unsqueeze(0)
         print(med.shape)
         print(x.shape)
         x = torch.cat( [x, med], dim = 1)
