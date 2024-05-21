@@ -317,10 +317,8 @@ class UNet(nn.Module):
 
         x = self.bottom_layer(x)
 
-        med = self.lin(torch.Tensor([0,0,0,0])) #replace with medical data
-        med = torch.reshape(med, (5,8,8)).unsqueeze(0).unsqueeze(0)
-        print(med.shape)
-        print(x.shape)
+        med = self.lin(torch.Tensor([0,0,0,0])) #replace with medical data. Linear layer to add 
+        med = torch.reshape(med, (5,8,8)).unsqueeze(0).unsqueeze(0) 
         x = torch.cat( [x, med], dim = 1)
         x = self.up_b_bottleneck(torch.cat([output_list.pop(), x], dim=1))
         for layer in self.layer_list_up:
