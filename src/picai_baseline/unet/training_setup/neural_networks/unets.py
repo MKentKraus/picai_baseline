@@ -177,7 +177,7 @@ class UNet(nn.Module):
                     self.layer_list_up.insert(0, up)
 
                 elif(i==len(channels)-2): #bottom layer
-                    self.bottom_layer = self._get_bottom_layer(c, channels[i+1], s)
+                    self.bottom_layer = self._get_bottom_layer(c, channels[i+1]-1, s) #The -1 here  is to make space for the addition of a linear layer. 
                     upc = c + channels[i+1]
 
                     self.down_b_bottleneck = self._get_down_layer(channels[i-1], c, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
@@ -254,7 +254,7 @@ class UNet(nn.Module):
             out_channels: number of output channels.
         """
         mod = self._get_down_layer(in_channels, out_channels, 1, False)
-        self.lin = nn.Linear(4,48)
+        self.lin = nn.Linear(4,5*8*8)
 
         return mod
 
@@ -314,8 +314,14 @@ class UNet(nn.Module):
             output_list.append(x)
         x = self.down_b_bottleneck(x)
         output_list.append(x)
+
         x = self.bottom_layer(x)
 
+        med = self.lin([0,0,0,0]) #replace with medical data
+        med = torch.reshape(med, (5,8,8)).unsqueeze(0)
+        print(med.shape)
+        print(x.shape)
+        x = torch.cat( [x, med], dim = 1)
         x = self.up_b_bottleneck(torch.cat([output_list.pop(), x], dim=1))
         for layer in self.layer_list_up:
             x = layer(torch.cat([x, output_list.pop()], dim=1))
