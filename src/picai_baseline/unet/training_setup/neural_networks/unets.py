@@ -149,7 +149,7 @@ class UNet(nn.Module):
 
         def _create_block(
             inc: int, outc: int, channels: Sequence[int], strides: Sequence[int], is_top: bool
-        ) -> nn.Module:
+        ):
             """
             Builds the UNet structure from the bottom up by recursing down to the bottom block, then creating sequential
             blocks containing the downsample path, a skip connection around the previous block, and the upsample path.
@@ -160,30 +160,37 @@ class UNet(nn.Module):
                 strides: convolution stride.
                 is_top: True if this is the top block.
             """
-            c = channels[0]
-            s = strides[0]
 
+            self.layer_list_down = []
+            self.layer_list_up = []
 
-            if len(channels) > 2:
-                subblock = _create_block(c, c, channels[1:], strides[1:], False)  # continue recursion down
+            for i in range(len(channels)-1):
+                c = channels[i]
+                s = strides[i]   
                 upc = c * 2
-                down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
-                up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
-                return self._get_connection_block(down, subblock, up) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
-
-            else:
-                # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
-                subblock = self._get_bottom_layer(c, channels[1])
-                upc = c + channels[1]
-
-                self.down_b_bottleneck = self._get_down_layer(inc, c-1, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
-                self.up_b_bottleneck = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
-                return self._get_connection_block(self.down_b_bottleneck, subblock, self.up_b_bottleneck) #In this case, subblock is already a nn.module, does not need to be turned into a sequential. 
 
 
+                if(i == 0): #first layer
+                    down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
+                    up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
+                    self.layer_list_down.append(down)
+                    self.layer_list_up.insert(0, up)
 
-        self.layer_list = _create_block(in_channels, out_channels, self.channels, self.strides, True)
-        self.model = nn.Sequential(*self.layer_list)
+                elif(i==len(channels)-2): #bottom layer
+                    self.bottom_layer = self._get_bottom_layer(c, channels[i+1]-1, s) #The -1 here  is to make space for the addition of a linear layer. 
+                    upc = c + channels[i+1]
+
+                    self.down_b_bottleneck = self._get_down_layer(channels[i-1], c, s, is_top)  # In the final layer, should have one less output channel to make space for the linear one.
+                    self.up_b_bottleneck = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
+
+
+                else:
+                    down = self._get_down_layer(channels[i-1], c, s, is_top)  # create layer in downsampling path
+                    up = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
+                    self.layer_list_down.append(down)
+                    self.layer_list_up.insert(0, up)
+
+        _create_block(in_channels, out_channels, self.channels, self.strides, True)
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
         """
@@ -239,29 +246,15 @@ class UNet(nn.Module):
         )
         return mod
 
-    def _get_bottom_layer(self, in_channels: int, out_channels: int) -> nn.Module:
+    def _get_bottom_layer(self, in_channels: int, out_channels: int, strides: int) -> nn.Module:
         """
         Returns the bottom or bottleneck layer at the bottom of the network linking encode to decode halves.
         Args:
             in_channels: number of input channels.
             out_channels: number of output channels.
         """
-
-        self.metadata_lin = nn.Linear(5, 320)
-
-        self.bottleneck = Convolution(
-            self.dimensions,
-            in_channels,
-            out_channels,
-            strides=1,
-            kernel_size=self.kernel_size,
-            act=self.act,
-            norm=self.norm,
-            dropout=self.dropout,
-            bias=self.bias,
-            adn_ordering=self.adn_ordering,
-        )
-
+        mod = self._get_down_layer(in_channels, out_channels, 1, False)
+        self.lin = nn.Linear(4,5*8*8)
 
 
         return self.bottleneck
@@ -313,8 +306,24 @@ class UNet(nn.Module):
 
         return conv
 
-    def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
-        x = self.model(x)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        output_list = [] # store for skip connections
+
+
+        for layer in self.layer_list_down:
+            x = layer(x)
+            output_list.append(x)
+        x = self.down_b_bottleneck(x)
+        output_list.append(x)
+
+        x = self.bottom_layer(x)
+
+        med = self.lin(torch.Tensor([0,0,0,0])) #replace with medical data. Linear layer to add 
+        med = torch.reshape(med, (5,8,8)).unsqueeze(0).unsqueeze(0) 
+        x = torch.cat( [x, med], dim = 1)
+        x = self.up_b_bottleneck(torch.cat([output_list.pop(), x], dim=1))
+        for layer in self.layer_list_up:
+            x = layer(torch.cat([x, output_list.pop()], dim=1))
         return x
 
 
