@@ -309,8 +309,7 @@ class UNet(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         output_list = [] # store for skip connections
 
-        for layer in self.layer_list_up:
-            print(layer.shape)
+
         for layer in self.layer_list_down:
             x = layer(x)
             output_list.append(x)
