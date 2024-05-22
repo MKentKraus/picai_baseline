@@ -113,7 +113,7 @@ class UNet(nn.Module):
         bias: bool = True,
         adn_ordering: str = "NDA",
         dimensions: Optional[int] = None,
-        n_inputs: Optional[int] = 0
+        n_inputs: Optional[int] = 5
     ) -> None:
 
         super().__init__()
