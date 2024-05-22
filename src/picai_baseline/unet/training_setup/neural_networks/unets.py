@@ -313,6 +313,17 @@ class UNet(nn.Module):
         return conv
 
     def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
+        """
+        A forward pass of the U-net and logistic regression.
+
+        Args:
+        x: a Tensor of the images
+        clinical: a list of clinical meta data
+
+        Returns:
+        x: detection map
+        global_confidence: case-level prediction of cancer presence between 0 and 1
+        """
         x = self.model(x)
         global_confidence = self.logistic_regression(torch.cat((torch.tensor([torch.max(x)]), torch.tensor(clinical))))
         return x, global_confidence
