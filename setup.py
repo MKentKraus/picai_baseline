@@ -6,12 +6,12 @@ if __name__ == '__main__':
 
     setuptools.setup(
         version='0.8.5',
-        author_email='Joeran.Bosma@radboudumc.nl',
+        author_email='Joeran.Bosma@radboudumc.nl, Ella.Has@ru.nl, Martin.Kraus@ru.nl, Giorgio.nagy@ru.nl, Robert.Michel@ru.nl',
         long_description=long_description,
         long_description_content_type="text/markdown",
-        url='https://github.com/DIAGNijmegen/picai_baseline',
+        url='https://github.com/MKentKraus/picai_baseline',
         project_urls={
-            "Bug Tracker": "https://github.com/DIAGNijmegen/picai_baseline/issues"
+            "Bug Tracker": "https://github.com/MKentKraus/picai_baseline/issues"
         },
         license='Apache 2.0',
         packages=setuptools.find_packages('src', exclude=['tests']),
