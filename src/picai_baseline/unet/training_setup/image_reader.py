@@ -103,6 +103,15 @@ class SimpleITKDataset(Dataset, Randomizable):
             except:
                 meta_data.append(None)
         meta_data = self.fill_in_missing(meta_data, metas, medians)
+        meta_data = self.log_values(meta_data, metas)
+        return meta_data
+    
+    def log_values(self, meta_data, metas):
+        index_psad = metas.index("PSAD_REPORT")
+        index_psa = metas.index("PSA_REPORT")
+        index_pro_vol = metas.index("PROSTATE_VOLUME_REPORT")
+        for i in [index_psad, index_psa, index_pro_vol]:
+            meta_data[i] = np.log1p(meta_data[i])
         return meta_data
     
     def fill_in_missing(self, meta_data, metas, medians):
