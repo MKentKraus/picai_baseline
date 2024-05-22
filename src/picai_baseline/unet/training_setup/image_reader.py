@@ -91,6 +91,19 @@ class SimpleITKDataset(Dataset, Randomizable):
         )
 
     def read_meta_data(self, path: str, metas, medians):
+        """
+        Reads the values of the requested meta data from the image file.
+
+        Args:
+        path: string of path to the image
+        metas: list of names of meta data values
+        medians: list of default values for the meta data
+
+        Returns:
+        meta_data: list of meta data values, where missing values are computed
+        when possible and otherwise set to the population median.
+        The log is taken of PSAD, PSA, and prostate volume.
+        """
         img = sitk.ReadImage(path)
         meta_data = []
         for i in range(len(metas)):
@@ -100,13 +113,24 @@ class SimpleITKDataset(Dataset, Randomizable):
                     meta_data.append(int(md[:3]))
                 else:
                     meta_data.append(float(md))
-            except:
+            except:  # if the value is not in the meta data or it is not a number
                 meta_data.append(None)
         meta_data = self.fill_in_missing(meta_data, metas, medians)
         meta_data = self.log_values(meta_data, metas)
         return meta_data
     
     def log_values(self, meta_data, metas):
+        """
+        Takes the log of (x + 1) for values of PSAD, PSA, and prostate volume.
+        It assumes the values for each of those are given.
+
+        Args:
+        meta_data: list of the raw values of the meta data
+        metas: list of the names of the meta data
+
+        Returns:
+        meta_data: the input meta_data with the log-transformed PSAD, PSA, and prostate volume
+        """
         index_psad = metas.index("PSAD_REPORT")
         index_psa = metas.index("PSA_REPORT")
         index_pro_vol = metas.index("PROSTATE_VOLUME_REPORT")
@@ -115,6 +139,17 @@ class SimpleITKDataset(Dataset, Randomizable):
         return meta_data
     
     def fill_in_missing(self, meta_data, metas, medians):
+        """
+        Fills in missing meta data by computing the value if possible, and otherwise filling in the median.
+
+        Args:
+        meta_data: list of the raw values of the meta data, with None for missing data
+        metas: list of names of meta data values
+        medians: list of default values for the meta data
+
+        Returns:
+        meta_data: the input meta_data with all None-values filled in by computation or median
+        """
         index_psad = metas.index("PSAD_REPORT")
         index_psa = metas.index("PSA_REPORT")
         index_pro_vol = metas.index("PROSTATE_VOLUME_REPORT")

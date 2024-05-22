@@ -294,6 +294,16 @@ class UNet(nn.Module):
         return conv
 
     def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
+        """
+        A forward pass of the U-net.
+
+        Args:
+        x: a Tensor of the images
+        clinical: a list of clinical meta data
+
+        Returns:
+        x: detection map
+        """
         output_list = [] # store for skip connections
 
         # down sampling path
