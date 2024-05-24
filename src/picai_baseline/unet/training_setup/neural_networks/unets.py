@@ -293,7 +293,7 @@ class UNet(nn.Module):
 
         return conv
 
-    def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, clinical):
         """
         A forward pass of the U-net.
 
@@ -303,6 +303,7 @@ class UNet(nn.Module):
 
         Returns:
         x: detection map
+        confidence: case-level confidence score
         """
         output_list = [] # store for skip connections
 
@@ -325,7 +326,9 @@ class UNet(nn.Module):
         # up sampling path
         for layer in self.layer_list_up:
             x = layer(torch.cat([x, output_list.pop()], dim=1)) # concatenate input with skip connection
-        return x
+
+        confidence = torch.sigmoid(torch.max(x))
+        return x, confidence
 
 
 Unet = UNet
