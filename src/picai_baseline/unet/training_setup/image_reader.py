@@ -191,8 +191,8 @@ class SimpleITKDataset(Dataset, Randomizable):
         meta_data = self.read_meta_data(str(self.image_files[index][0]),
                                         ["0010|1010", "PSAD_REPORT", "PSA_REPORT", "PROSTATE_VOLUME_REPORT"],
                                         [66, 8.5, 0.15, 57.], # medians computed from training population after filling in computable values
-                                        [65.595333, 11.833160, 0.233676, 65.130764], # means computed from training population after filling in computable values and applying log1p transformation
-                                        [7.191527, 14.752888, 0.437095, 36.971748])  # standard deviations computed from training population after filling in computable values and applying log1p transformation
+                                        [65.595333, 2.300051, 0.184540, 4.059110], # means computed from training population after filling in computable values and applying log1p transformation
+                                        [7.191527, 0.639685, 0.187901, 0.512711])  # standard deviations computed from training population after filling in computable values and applying log1p transformation
 
         if self.seg_files is not None:
             seg = sitk.GetArrayFromImage(sitk.ReadImage(self.seg_files[index])).astype(np.int8)
