@@ -90,7 +90,7 @@ class SimpleITKDataset(Dataset, Randomizable):
             ).astype(np.float32), axis=(0, 1)
         )
 
-    def read_meta_data(self, path: str, metas, medians):
+    def read_meta_data(self, path: str, metas, medians, means, stds):
         """
         Reads the values of the requested meta data from the image file.
 
@@ -98,6 +98,8 @@ class SimpleITKDataset(Dataset, Randomizable):
         path: string of path to the image
         metas: list of names of meta data values
         medians: list of default values for the meta data
+        means: list of mean values for the meta data after filling in missing values and applying the log1p transformation
+        stds: list of standard deviation values for the meta data after filling in missing values and applying the log1p transformation
 
         Returns:
         meta_data: list of meta data values, where missing values are computed
@@ -117,6 +119,14 @@ class SimpleITKDataset(Dataset, Randomizable):
                 meta_data.append(None)
         meta_data = self.fill_in_missing(meta_data, metas, medians)
         meta_data = self.log_values(meta_data, metas)
+        meta_data = self.normalize_values(meta_data, metas, means, stds)
+        return meta_data
+
+    def normalize_values(self, meta_data, metas, means, stds):
+
+        
+        for i in range(len(meta_data)):
+            meta_data[i] = (meta_data[i] - means[i]) / stds[i]
         return meta_data
     
     def log_values(self, meta_data, metas):
@@ -180,7 +190,9 @@ class SimpleITKDataset(Dataset, Randomizable):
 
         meta_data = self.read_meta_data(str(self.image_files[index][0]),
                                         ["0010|1010", "PSAD_REPORT", "PSA_REPORT", "PROSTATE_VOLUME_REPORT"],
-                                        [66, 8.5, 0.15, 57.])  # medians computed from training population after filling in computable values
+                                        [66, 8.5, 0.15, 57.], # medians computed from training population after filling in computable values
+                                        [65.595333, 11.833160, 0.233676, 65.130764], # means computed from training population after filling in computable values and applying log1p transformation
+                                        [7.191527, 14.752888, 0.437095, 36.971748])  # standard deviations computed from training population after filling in computable values and applying log1p transformation
 
         if self.seg_files is not None:
             seg = sitk.GetArrayFromImage(sitk.ReadImage(self.seg_files[index])).astype(np.int8)
