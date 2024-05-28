@@ -123,6 +123,18 @@ class SimpleITKDataset(Dataset, Randomizable):
         return meta_data
 
     def normalize_values(self, meta_data, metas, means, stds):
+        """
+        Normalizes all variables.
+
+        Args:
+        meta_data: list of the raw values of the meta data, with None for missing data
+        metas: list of names of meta data values
+        means: list of means for the data
+        stds: list of standard deviations for the data
+
+        Returns:
+        meta_data: the normalized input meta_data 
+        """
 
         
         for i in range(len(meta_data)):
