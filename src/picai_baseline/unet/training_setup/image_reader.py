@@ -90,15 +90,81 @@ class SimpleITKDataset(Dataset, Randomizable):
             ).astype(np.float32), axis=(0, 1)
         )
 
-    def read_meta_data(self, path: str, metas: list[str]):
+    def read_meta_data(self, path: str, metas, medians):
+        """
+        Reads the values of the requested meta data from the image file.
+
+        Args:
+        path: string of path to the image
+        metas: list of names of meta data values
+        medians: list of default values for the meta data
+
+        Returns:
+        meta_data: list of meta data values, where missing values are computed
+        when possible and otherwise set to the population median.
+        The log is taken of PSAD, PSA, and prostate volume.
+        """
         img = sitk.ReadImage(path)
         meta_data = []
-        for meta in metas:
-            md = img.GetMetaData(meta)
-            if meta == "0010|1010":
-                meta_data.append(int(md[:3]))
-            else:
-                meta_data.append(float(md))
+        for i in range(len(metas)):
+            try:
+                md = img.GetMetaData(metas[i])
+                if metas[i] == "0010|1010":
+                    meta_data.append(int(md[:3]))
+                else:
+                    meta_data.append(float(md))
+            except:  # if the value is not in the meta data or it is not a number
+                meta_data.append(None)
+        meta_data = self.fill_in_missing(meta_data, metas, medians)
+        meta_data = self.log_values(meta_data, metas)
+        return meta_data
+    
+    def log_values(self, meta_data, metas):
+        """
+        Takes the log of (x + 1) for values of PSAD, PSA, and prostate volume.
+        It assumes the values for each of those are given.
+
+        Args:
+        meta_data: list of the raw values of the meta data
+        metas: list of the names of the meta data
+
+        Returns:
+        meta_data: the input meta_data with the log-transformed PSAD, PSA, and prostate volume
+        """
+        index_psad = metas.index("PSAD_REPORT")
+        index_psa = metas.index("PSA_REPORT")
+        index_pro_vol = metas.index("PROSTATE_VOLUME_REPORT")
+        for i in [index_psad, index_psa, index_pro_vol]:
+            meta_data[i] = np.log1p(meta_data[i])
+        return meta_data
+    
+    def fill_in_missing(self, meta_data, metas, medians):
+        """
+        Fills in missing meta data by computing the value if possible, and otherwise filling in the median.
+
+        Args:
+        meta_data: list of the raw values of the meta data, with None for missing data
+        metas: list of names of meta data values
+        medians: list of default values for the meta data
+
+        Returns:
+        meta_data: the input meta_data with all None-values filled in by computation or median
+        """
+        index_psad = metas.index("PSAD_REPORT")
+        index_psa = metas.index("PSA_REPORT")
+        index_pro_vol = metas.index("PROSTATE_VOLUME_REPORT")
+        if meta_data[index_psad] is None:
+            if meta_data[index_psa] is not None and meta_data[index_pro_vol] is not None and meta_data[index_pro_vol] != 0:
+                meta_data[index_psad] = meta_data[index_psa] / meta_data[index_pro_vol]
+        if meta_data[index_psa] is None:
+            if meta_data[index_psad] is not None and meta_data[index_pro_vol] is not None:
+                meta_data[index_psa] = meta_data[index_psad] * meta_data[index_pro_vol]
+        if meta_data[index_pro_vol] is None:
+            if meta_data[index_psa] is not None and meta_data[index_psad] is not None and meta_data[index_psad] != 0:
+                meta_data[index_pro_vol] = meta_data[index_psa] / meta_data[index_psad]
+        for i in range(len(meta_data)):
+            if meta_data[i] is None:
+                meta_data[i] = medians[i]
         return meta_data
 
     def __getitem__(self, index: int):
@@ -112,7 +178,9 @@ class SimpleITKDataset(Dataset, Randomizable):
 
         img = np.concatenate([img_t2w, img_adc, img_hbv], axis=1)
 
-        meta_data = self.read_meta_data(str(self.image_files[index][0]), ["0010|1010", "PSAD_REPORT", "PSA_REPORT", "PROSTATE_VOLUME_REPORT"])
+        meta_data = self.read_meta_data(str(self.image_files[index][0]),
+                                        ["0010|1010", "PSAD_REPORT", "PSA_REPORT", "PROSTATE_VOLUME_REPORT"],
+                                        [66, 8.5, 0.15, 57.])  # medians computed from training population after filling in computable values
 
         if self.seg_files is not None:
             seg = sitk.GetArrayFromImage(sitk.ReadImage(self.seg_files[index])).astype(np.int8)
