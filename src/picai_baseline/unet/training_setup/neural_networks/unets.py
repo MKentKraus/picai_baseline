@@ -18,12 +18,12 @@ from monai.networks.layers.factories import Act, Norm
 from monai.networks.layers.simplelayers import SkipConnection
 from monai.utils import alias, deprecated_arg, export
 
-__all__ = ["UNet", "Unet"]
+__all__ = ["UNet", "Unet", "unet"]
 
 
 @export("monai.networks.nets")
 @alias("Unet")
-class UNet(nn.Module):
+class CLUNet(nn.Module):
     """
     Enhanced version of UNet which has residual units implemented with the ResidualUnit class.
     The residual part uses a convolution to change the input dimensions to match the output dimensions
@@ -331,4 +331,4 @@ class UNet(nn.Module):
         return x, confidence
 
 
-Unet = UNet
+CLUNet = CLUNet

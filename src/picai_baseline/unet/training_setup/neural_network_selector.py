@@ -12,14 +12,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from picai_baseline.unet.training_setup.neural_networks.unets import UNet
+from picai_baseline.unet.training_setup.neural_networks.unets import CLUNet
 
 
-def neural_network_for_run(args, device):
+def neural_network_for_run_cls(args, device):
     """Select neural network architecture for given run"""
 
     if args.model_type == 'unet':
-        model = UNet(
+        model = CLUNet(
             spatial_dims=len(args.image_shape),
             in_channels=args.num_channels,
             out_channels=args.num_classes,
