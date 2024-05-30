@@ -163,8 +163,8 @@ class CLUNet(nn.Module):
                 is_top: True if this is the top block.
             """
 
-            self.layer_list_down = [] # contains the layers in descending order in the downsampling path
-            self.layer_list_up = [] # contains the layers in ascending order in the upsampling path
+            self.layer_list_down = nn.ModuleList() # contains the layers in descending order in the downsampling path
+            self.layer_list_up = nn.ModuleList() # contains the layers in ascending order in the upsampling path
 
             for i in range(len(channels)-1):
                 c = channels[i]
