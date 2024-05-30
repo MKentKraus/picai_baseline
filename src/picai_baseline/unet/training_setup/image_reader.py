@@ -120,7 +120,7 @@ class SimpleITKDataset(Dataset, Randomizable):
         meta_data = self.fill_in_missing(meta_data, metas, medians)
         meta_data = self.log_values(meta_data, metas)
         meta_data = self.normalize_values(meta_data, metas, means, stds)
-        return meta_data
+        return np.numpy(meta_data)
 
     def normalize_values(self, meta_data, metas, means, stds):
         """
