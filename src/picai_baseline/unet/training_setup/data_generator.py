@@ -68,7 +68,7 @@ class DataLoaderFromDataset(DataLoader):
         # create dictionary per sample
         batch = [{'data': self._data[i][0].numpy(),
                   'seg': self._data[i][2].numpy(),
-                  "clinical" : self._data[i][1].numpy()} for i in indices] #needs to refer to data
+                  "clinical" : self._data[i][1]} for i in indices] #needs to refer to data
 
         return self.collate_fn(batch)
 
