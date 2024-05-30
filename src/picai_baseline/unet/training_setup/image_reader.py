@@ -186,7 +186,7 @@ class SimpleITKDataset(Dataset, Randomizable):
         for i in range(len(meta_data)):
             if meta_data[i] is None:
                 meta_data[i] = medians[i]
-        return meta_data
+        return np.array(meta_data)
 
     def __getitem__(self, index: int):
         self.randomize()
