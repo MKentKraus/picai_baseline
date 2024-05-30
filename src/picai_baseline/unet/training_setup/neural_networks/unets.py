@@ -186,8 +186,6 @@ class UNet(nn.Module):
         
         self.model = nn.Sequential(*self.layer_list)
 
-        self.logistic_regression = nn.Sequential(nn.Linear(n_inputs, 1), nn.Sigmoid())
-
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
         """
         Returns the block object defining a layer of the UNet structure including the implementation of the skip
@@ -312,21 +310,18 @@ class UNet(nn.Module):
 
         return conv
 
-    def forward(self, x: torch.Tensor, clinical) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         A forward pass of the U-net and logistic regression.
 
         Args:
         x: a Tensor of the images
-        clinical: a list of clinical meta data
 
         Returns:
         x: detection map
-        global_confidence: case-level prediction of cancer presence between 0 and 1
         """
         x = self.model(x)
-        global_confidence = self.logistic_regression(torch.cat((torch.tensor([torch.max(x)]), torch.tensor(clinical))))
-        return x, global_confidence
+        return x
 
 
 Unet = UNet
