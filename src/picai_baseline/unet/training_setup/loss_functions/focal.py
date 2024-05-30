@@ -38,12 +38,19 @@ class FocalLoss(nn.Module):
             alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
             loss = alpha_t * loss
 
-        confidence_targets = torch.max(targets.view(targets.size()[:-2], -1), dim=-1)
-        ce_loss_confidence = F.binary_cross_entropy(confidence, confidence_targets, reduction="none")
-
         if self.reduction == "mean":
             loss = loss.mean()
         elif self.reduction == "sum":
             loss = loss.sum()
 
-        return loss + ce_loss_confidence
+        return loss
+
+class CrossEntropyLoss(nn.Module):
+    "Cross entropy loss for case-level confidence."
+    def __init__(self):
+        super(CrossEntropyLoss, self).__init__()
+
+    def forward(self, inputs, targets):
+        confidence_targets = torch.max(targets.view(targets.size()[:-2], -1), dim=-1)
+        ce_loss_confidence = F.binary_cross_entropy(confidence, confidence_targets, reduction="sum")
+        return ce_loss_confidence
