@@ -179,7 +179,7 @@ def validate_model(model, optimizer, valid_gen, args, tracking_metrics, device, 
         # gaussian blur to counteract checkerboard artifacts in
         # predictions from the use of transposed conv. in the U-Net
         preds = [
-            torch.sigmoid(model(x))[:, 1, ...].detach().cpu().numpy()
+            torch.sigmoid(model(x)[0])[:, 1, ...].detach().cpu().numpy()
             for x in valid_images
         ]
 
