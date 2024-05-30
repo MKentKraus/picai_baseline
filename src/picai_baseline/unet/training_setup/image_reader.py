@@ -120,6 +120,7 @@ class SimpleITKDataset(Dataset, Randomizable):
         meta_data = self.fill_in_missing(meta_data, metas, medians)
         meta_data = self.log_values(meta_data, metas)
         meta_data = self.normalize_values(meta_data, metas, means, stds)
+        meta_data = np.array(meta_data, dtype="float32")
         return meta_data
 
     def normalize_values(self, meta_data, metas, means, stds):
@@ -186,7 +187,7 @@ class SimpleITKDataset(Dataset, Randomizable):
         for i in range(len(meta_data)):
             if meta_data[i] is None:
                 meta_data[i] = medians[i]
-        return np.array(meta_data, dtype="float32")
+        return meta_data
 
     def __getitem__(self, index: int):
         self.randomize()
