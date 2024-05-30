@@ -112,12 +112,12 @@ def optimize_model(model, optimizer, loss_func, train_gen, args, tracking_metric
         step += 1
         try:
             inputs = batch_data['data'].to(device)
-            clinical = batch_data['clinical'].to(device)
             labels = batch_data['seg'].to(device)
         except Exception:
             inputs = torch.from_numpy(batch_data['data']).to(device)
-            clinical = torch.from_numpy(batch_data['clinical']).to(device)
             labels = torch.from_numpy(batch_data['seg']).to(device)
+
+        clinical = torch.from_numpy(batch_data['clinical']).to(device)
 
         # bugfix for shape of targets
         if labels.shape[1] == 1:
@@ -167,12 +167,12 @@ def validate_model(model, optimizer, valid_gen, args, tracking_metrics, device, 
 
         try:
             valid_images = valid_data['data'].to(device)
-            clinical = valid_data['clinical'].to(device)
             valid_labels = valid_data['seg']
         except Exception:
             valid_images = torch.from_numpy(valid_data['data']).to(device)
-            clinical = torch.from_numpy(valid_data['clinical']).to(device)
             valid_labels = valid_data['seg']
+            
+        clinical = torch.from_numpy(valid_data['clinical']).to(device)
 
         # test-time augmentation
         valid_images = [valid_images, torch.flip(valid_images, [4]).to(device)]
