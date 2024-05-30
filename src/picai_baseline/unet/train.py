@@ -25,9 +25,10 @@ from picai_baseline.unet.training_setup.compute_spec import \
 from picai_baseline.unet.training_setup.data_generator import prepare_datagens
 from picai_baseline.unet.training_setup.default_hyperparam import \
     get_default_hyperparams
-from picai_baseline.unet.training_setup.loss_functions.focal import FocalLoss
+from picai_baseline.unet.training_setup.loss_functions.focal import CrossEntropyLoss
 from picai_baseline.unet.training_setup.neural_network_selector import \
     neural_network_for_run
+from picai_baseline.unet.training_setup.neural_networks.unets import LogisticRegression
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -52,6 +53,8 @@ def main():
                         help="Base path to training/validation data sheets")
     parser.add_argument('--folds', type=int, nargs='+', required=True, 
                         help="Folds selected for training/validation run")
+    parser.add_argument('--unet_weights_dir', type=str, required=True,
+                        help="Directory to the weights of the pre-trained U-Net")
 
     # training hyperparameters
     parser.add_argument('--image_shape', type=int, nargs="+", default=[20, 256, 256],   
@@ -109,10 +112,15 @@ def main():
         train_gen.restart()
 
         # model definition
-        model = neural_network_for_run(args=args, device=device)
+        unet = neural_network_for_run(args=args, device=device)
+        checkpoint_path = args.unet_weights_dir / 'unet_F{f}.pt'
+        checkpoint = torch.load(checkpoint_path)
+        unet.load_state_dict(checkpoint['model_state_dict'])
+        model = LogisticRegression(5, 1)
+        model = model.to(device)
 
         # loss function + optimizer
-        loss_func = FocalLoss(alpha=class_weights[-1], gamma=args.focal_loss_gamma).to(device)
+        loss_func = CrossEntropyLoss().to(device)
         optimizer = torch.optim.Adam(params=model.parameters(), lr=args.base_lr, amsgrad=True)
         # --------------------------------------------------------------------------------------------------------------------------
         # training loop
@@ -132,22 +140,12 @@ def main():
             tracking_metrics['epoch'] = epoch
 
             model, optimizer, train_gen, tracking_metrics, writer = optimize_model(
-                model=model, optimizer=optimizer, loss_func=loss_func, train_gen=train_gen,
+                model=model, unet=unet, optimizer=optimizer, loss_func=loss_func, train_gen=train_gen,
                 args=args, tracking_metrics=tracking_metrics, device=device, writer=writer
             )
 
             # ----------------------------------------------------------------------------------------------------------------------
-            # for each round of validation
-            if ((epoch+1) % args.validate_n_epochs == 0) and ((epoch+1) >= args.validate_min_epoch):
-
-                # validate model per N epochs + export model weights
-                model.eval()
-                with torch.no_grad():  # no gradient updates during validation
-
-                    model, optimizer, valid_gen, tracking_metrics, writer = validate_model(
-                        model=model, optimizer=optimizer, valid_gen=valid_gen, args=args,
-                        tracking_metrics=tracking_metrics, device=device, writer=writer
-                    )
+            # no eval, because no time to code it properly
 
         # --------------------------------------------------------------------------------------------------------------------------
         print(

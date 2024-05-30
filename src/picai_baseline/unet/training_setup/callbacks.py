@@ -100,7 +100,7 @@ def resume_or_restart_training(model, optimizer, device, args, fold_id):
     return model, optimizer, tracking_metrics
 
 
-def optimize_model(model, optimizer, loss_func, train_gen, args, tracking_metrics, device, writer):
+def optimize_model(model, unet, optimizer, loss_func, train_gen, args, tracking_metrics, device, writer):
     """Optimize model x N training steps per epoch + update learning rate"""
 
     train_loss, step = 0,  0
@@ -127,7 +127,8 @@ def optimize_model(model, optimizer, loss_func, train_gen, args, tracking_metric
             # reshape to (B, C, D, H, W)
             labels = labels.permute(0, 4, 1, 2, 3).contiguous()
 
-        outputs = model(inputs, clinical)
+        detection = unet(inputs)
+        outputs = model(detection, clinical)
         loss = loss_func(outputs, labels)
         train_loss += loss.item()
 
