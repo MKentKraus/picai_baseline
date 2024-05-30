@@ -167,9 +167,11 @@ def validate_model(model, optimizer, valid_gen, args, tracking_metrics, device, 
 
         try:
             valid_images = valid_data['data'].to(device)
+            clinical = batch_data['clinical'].to(device)
             valid_labels = valid_data['seg']
         except Exception:
             valid_images = torch.from_numpy(valid_data['data']).to(device)
+            clinical = torch.from_numpy(batch_data['clinical']).to(device)
             valid_labels = valid_data['seg']
 
         # test-time augmentation
@@ -179,7 +181,7 @@ def validate_model(model, optimizer, valid_gen, args, tracking_metrics, device, 
         # gaussian blur to counteract checkerboard artifacts in
         # predictions from the use of transposed conv. in the U-Net
         preds = [
-            torch.sigmoid(model(x)[0])[:, 1, ...].detach().cpu().numpy()
+            torch.sigmoid(model(x, clinical)[0])[:, 1, ...].detach().cpu().numpy()
             for x in valid_images
         ]
 
