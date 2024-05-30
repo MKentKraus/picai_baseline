@@ -113,7 +113,7 @@ def main():
 
         # model definition
         unet = neural_network_for_run(args=args, device=device)
-        checkpoint_path = args.unet_weights_dir / 'unet_F{f}.pt'
+        checkpoint_path = args.unet_weights_dir / f'unet_F{f}.pt'
         checkpoint = torch.load(checkpoint_path)
         unet.load_state_dict(checkpoint['model_state_dict'])
         model = LogisticRegression(5, 1)
