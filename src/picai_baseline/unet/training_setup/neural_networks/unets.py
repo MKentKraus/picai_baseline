@@ -323,5 +323,12 @@ class UNet(nn.Module):
         x = self.model(x)
         return x
 
+class LogisticRegression(nn.Module):
+    def __init__(self, in_dim=5, out_dim=1):
+        self.logistic_regression = nn.Sequential(nn.Linear(in_dim, out_dim), nn.Sigmoid())
+
+    def forward(self, x, clinical):
+        global_confidence = self.logistic_regression(torch.cat((torch.tensor([torch.max(x)]), torch.tensor(clinical))))
+        return global_confidence
 
 Unet = UNet
