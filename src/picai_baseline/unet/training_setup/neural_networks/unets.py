@@ -318,7 +318,7 @@ class CLUNet(nn.Module):
         x = self.bottom_layer(x)
 
         med = self.clinical_data_feed_in(clinical) # Feed in the clinical data to the UNet
-        med = torch.reshape(med, (-1,1,5,8,8)).unsqueeze(0).unsqueeze(0)  # Reshape the clinical data to match the shape of the latent space
+        med = torch.reshape(med, (-1,1,5,8,8))  # Reshape the clinical data to match the shape of the latent space
         x = torch.cat([x, med], dim = 1)
 
         x = self.up_b_bottleneck(torch.cat([output_list.pop(), x], dim=1))
