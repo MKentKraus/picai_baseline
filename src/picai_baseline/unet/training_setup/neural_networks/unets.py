@@ -15,10 +15,18 @@ import torch
 import torch.nn as nn
 from monai.networks.blocks.convolutions import Convolution, ResidualUnit
 from monai.networks.layers.factories import Act, Norm
-from monai.networks.layers.simplelayers import SkipConnection
 from monai.utils import alias, deprecated_arg, export
 
-__all__ = ["UNet", "Unet", "unet"]
+__all__ = ["UNet", "Unet", "unet", "CLUNet", "SkipConnectionCLUNet"]
+
+
+class SkipConnectionCLUNet(nn.Module):
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return torch.cat([x, y], dim=1)
 
 
 @export("monai.networks.nets")
@@ -165,6 +173,9 @@ class CLUNet(nn.Module):
 
             self.layer_list_down = nn.ModuleList() # contains the layers in descending order in the downsampling path
             self.layer_list_up = nn.ModuleList() # contains the layers in ascending order in the upsampling path
+            self.skip_connections = nn.ModuleList()
+
+            self.skip_connections.append(SkipConnectionCLUNet())
 
             for i in range(len(channels)-1):
                 c = channels[i]
@@ -176,6 +187,7 @@ class CLUNet(nn.Module):
                     up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
                     self.layer_list_down.append(down)
                     self.layer_list_up.insert(0, up)
+                    self.skip_connections.append(SkipConnectionCLUNet())
 
                 elif(i==len(channels)-2): # bottom layer
                     self.bottom_layer = self._get_bottom_layer(c, channels[i+1]-1, s) # The -1 here  is to make space for the addition of a linear layer. 
@@ -184,12 +196,14 @@ class CLUNet(nn.Module):
 
                     self.down_b_bottleneck = self._get_down_layer(channels[i-1], c, s, is_top)
                     self.up_b_bottleneck = self._get_up_layer(upc, channels[i-1], s, is_top)
+                    self.skip_connections.append(SkipConnectionCLUNet())
 
                 else: # middle layers
                     down = self._get_down_layer(channels[i-1], c, s, is_top)  # create layer in downsampling path
                     up = self._get_up_layer(upc, channels[i-1], s, is_top)  # create layer in upsampling path
                     self.layer_list_down.append(down)
                     self.layer_list_up.insert(0, up)
+                    self.skip_connections.append(SkipConnectionCLUNet())
 
         _create_block(in_channels, out_channels, self.channels, self.strides, True)
 
@@ -319,13 +333,13 @@ class CLUNet(nn.Module):
 
         med = self.clinical_data_feed_in(clinical) # Feed in the clinical data to the UNet
         med = torch.reshape(med, (-1,1,5,8,8))  # Reshape the clinical data to match the shape of the latent space
-        x = torch.cat([x, med], dim = 1)
+        x = self.skip_connections.pop()(x, med)
 
-        x = self.up_b_bottleneck(torch.cat([output_list.pop(), x], dim=1))
+        x = self.up_b_bottleneck(self.skip_connections.pop()(x, output_list.pop()))
 
         # up sampling path
         for layer in self.layer_list_up:
-            x = layer(torch.cat([x, output_list.pop()], dim=1)) # concatenate input with skip connection
+            x = layer(self.skip_connections.pop()(x, output_list.pop())) # concatenate input with skip connection
 
         confidence = torch.sigmoid(torch.max(x))
         return x, confidence
