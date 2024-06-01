@@ -333,13 +333,13 @@ class CLUNet(nn.Module):
 
         med = self.clinical_data_feed_in(clinical) # Feed in the clinical data to the UNet
         med = torch.reshape(med, (-1,1,5,8,8))  # Reshape the clinical data to match the shape of the latent space
-        x = self.skip_connections[0](x, med)
+        x = self.skip_connections[0](med, x)
 
-        x = self.up_b_bottleneck(self.skip_connections[1](x, output_list.pop()))
+        x = self.up_b_bottleneck(self.skip_connections[1](output_list.pop(), x))
 
         # up sampling path
         for i in range(len(self.layer_list_up)):
-            x = self.layer_list_up[i](self.skip_connections[i+2](x, output_list.pop())) # concatenate input with skip connection
+            x = self.layer_list_up[i](self.skip_connections[i+2](output_list.pop(), x)) # concatenate input with skip connection
 
         confidence = torch.sigmoid(torch.max(x))
         return x, confidence
