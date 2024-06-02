@@ -15,7 +15,7 @@
 from picai_baseline.unet.training_setup.neural_networks.unets import CLUNet
 
 
-def neural_network_for_run_cls(args, device):
+def neural_network_for_run(args, device):
     """Select neural network architecture for given run"""
 
     if args.model_type == 'unet':

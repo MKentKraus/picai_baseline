@@ -27,7 +27,7 @@ from picai_baseline.unet.training_setup.default_hyperparam import \
     get_default_hyperparams
 from picai_baseline.unet.training_setup.loss_functions.focal import FocalLoss
 from picai_baseline.unet.training_setup.neural_network_selector import \
-    neural_network_for_run_cls
+    neural_network_for_run
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -109,7 +109,7 @@ def main():
         train_gen.restart()
 
         # model definition
-        model = neural_network_for_run_cls(args=args, device=device)
+        model = neural_network_for_run(args=args, device=device)
 
         # loss function + optimizer
         loss_func = FocalLoss(alpha=class_weights[-1], gamma=args.focal_loss_gamma).to(device)
